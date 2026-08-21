@@ -112,6 +112,15 @@ public abstract class Usuario {
     public abstract TipoUsuario getTipo();
 
     /**
+     * Documento de identificacao, resolvido por polimorfismo.
+     *
+     * Cliente devolve o CPF, DonoRestaurante devolve o CNPJ. Sem este metodo,
+     * qualquer codigo que precisasse do documento teria de testar o tipo
+     * concreto do objeto - exatamente o condicional que a heranca elimina.
+     */
+    public abstract String getDocumento();
+
+    /**
      * Igualdade baseada exclusivamente no identificador.
      *
      * Comparar todos os campos quebraria com entidades gerenciadas pelo

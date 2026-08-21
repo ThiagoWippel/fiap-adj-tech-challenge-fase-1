@@ -39,4 +39,9 @@ public class Cliente extends Usuario {
     public TipoUsuario getTipo() {
         return TipoUsuario.CLIENTE;
     }
+
+    @Override
+    public String getDocumento() {
+        return this.cpf;
+    }
 }

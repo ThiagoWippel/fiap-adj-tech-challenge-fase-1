@@ -36,4 +36,9 @@ public class DonoRestaurante extends Usuario {
     public TipoUsuario getTipo() {
         return TipoUsuario.DONO_RESTAURANTE;
     }
+
+    @Override
+    public String getDocumento() {
+        return this.cnpj;
+    }
 }
