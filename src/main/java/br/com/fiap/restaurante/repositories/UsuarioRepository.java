@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,6 +28,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * de otimizacao sem produzir nenhuma.
      */
     Page<Usuario> findByNomeContainingIgnoreCase(String nome, Pageable paginacao);
+
+    /**
+     * Mesma consulta, sem paginacao. Atende a versao 1 da busca, que devolve
+     * uma lista simples. O Spring Data distingue as duas pelo tipo de retorno.
+     */
+    List<Usuario> findByNomeContainingIgnoreCase(String nome);
 
     /**
      * Usado pelo servico de autenticacao.

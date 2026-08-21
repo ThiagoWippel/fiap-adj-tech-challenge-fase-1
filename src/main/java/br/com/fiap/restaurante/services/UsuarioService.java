@@ -16,6 +16,8 @@ import br.com.fiap.restaurante.services.exceptions.CredenciaisInvalidasException
 import br.com.fiap.restaurante.services.exceptions.RecursoNaoEncontradoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -99,11 +101,29 @@ public class UsuarioService {
         return usuarioMapper.paraResposta(buscarEntidade(id));
     }
 
+    /**
+     * Busca por nome sem paginacao - versao 1 da API.
+     *
+     * Devolve lista vazia quando nada corresponde ao termo. A colecao filtrada
+     * existe como recurso; ela apenas nao contem elementos. Responder 404 nesse
+     * caso afirmaria que a rota nao existe.
+     */
     @Transactional(readOnly = true)
-    public Page<UsuarioResponse> buscarPorNome(String nome, Pageable paginacao) {
-        String termo = (nome == null) ? "" : nome.trim();
+    public List<UsuarioResponse> buscarPorNome(String nome) {
         return usuarioRepository
-                .findByNomeContainingIgnoreCase(termo, paginacao)
+                .findByNomeContainingIgnoreCase(normalizarTermo(nome))
+                .stream()
+                .map(usuarioMapper::paraResposta)
+                .toList();
+    }
+
+    /**
+     * Busca por nome com paginacao - versao 2 da API.
+     */
+    @Transactional(readOnly = true)
+    public Page<UsuarioResponse> buscarPorNomePaginado(String nome, Pageable paginacao) {
+        return usuarioRepository
+                .findByNomeContainingIgnoreCase(normalizarTermo(nome), paginacao)
                 .map(usuarioMapper::paraResposta);
     }
 
@@ -179,6 +199,10 @@ public class UsuarioService {
     // ------------------------------------------------------------------
     // Apoio
     // ------------------------------------------------------------------
+
+    private String normalizarTermo(String nome) {
+        return (nome == null) ? "" : nome.trim();
+    }
 
     private Usuario buscarEntidade(Long id) {
         return usuarioRepository.findById(id)

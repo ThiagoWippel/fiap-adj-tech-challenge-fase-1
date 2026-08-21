@@ -1,6 +1,7 @@
 package br.com.fiap.restaurante.dtos.response;
 
 import br.com.fiap.restaurante.entities.TipoUsuario;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -43,9 +44,16 @@ public record UsuarioResponse(
 
         EnderecoResponse endereco,
 
+        // Sem o formato explicito, o Jackson serializa LocalDateTime com
+        // precisao de nanossegundos, enquanto a coluna no banco guarda
+        // microssegundos. O objeto recem-criado sairia com nove casas decimais e
+        // o mesmo registro, relido do MySQL, com seis - divergencia que
+        // apareceria nos prints da documentacao.
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         @Schema(example = "2026-08-21T10:30:00")
         LocalDateTime dataCriacao,
 
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         @Schema(example = "2026-08-21T14:45:00")
         LocalDateTime dataUltimaAlteracao
 ) {
