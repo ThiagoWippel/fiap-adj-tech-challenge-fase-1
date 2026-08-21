@@ -38,8 +38,7 @@ RUN addgroup -S spring && adduser -S spring -G spring
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
-RUN chown -R spring:spring /app
+COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
 
 USER spring
 
