@@ -1,0 +1,142 @@
+package br.com.fiap.restaurante.entities;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+/**
+ * Raiz da hierarquia de usuarios.
+ *
+ * Estrategia de heranca: SINGLE_TABLE. Todos os subtipos compartilham uma
+ * unica tabela, distinguidos pela coluna discriminadora "tipo_usuario". A
+ * alternativa JOINED exigiria juncao em toda leitura e triplicaria o numero
+ * de tabelas; TABLE_PER_CLASS foi descartada por inviabilizar a unicidade de
+ * e-mail no sistema inteiro, ja que uma restricao de unicidade nao abrange
+ * tabelas distintas.
+ *
+ * A classe e abstrata de proposito: nao existe "um usuario generico" no
+ * dominio. Todo usuario e um cliente ou um dono de restaurante.
+ */
+@Entity
+@Table(
+        name = "usuario",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_usuario_email", columnNames = "email"),
+                @UniqueConstraint(name = "uk_usuario_login", columnNames = "login")
+        }
+)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+// Por padrao o JPA nomeia a coluna discriminadora como "DTYPE" e a preenche
+// com o nome da classe. Nomear explicitamente torna a tabela legivel para
+// quem a inspeciona sem conhecer o codigo.
+@DiscriminatorColumn(
+        name = "tipo_usuario",
+        discriminatorType = DiscriminatorType.STRING,
+        length = 20
+)
+// Habilita o preenchimento automatico das datas de criacao e alteracao.
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
+// O JPA exige um construtor sem argumentos para instanciar entidades ao ler
+// do banco. Deixa-lo protegido impede que o codigo da aplicacao crie usuarios
+// em estado invalido, sem passar pelo construtor real.
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public abstract class Usuario {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 120)
+    private String nome;
+
+    // 255 acomoda o limite normativo de 254 caracteres de um endereco de e-mail.
+    @Column(nullable = false, length = 255)
+    private String email;
+
+    @Column(nullable = false, length = 50)
+    private String login;
+
+    // Armazena o hash BCrypt, nunca a senha em texto. O hash tem 60 caracteres
+    // fixos; a folga ate 100 evita acoplar o esquema a um algoritmo especifico.
+    @Column(nullable = false, length = 100)
+    private String senha;
+
+    @Embedded
+    private Endereco endereco;
+
+    @CreatedDate
+    @Column(name = "data_criacao", nullable = false, updatable = false)
+    private LocalDateTime dataCriacao;
+
+    @LastModifiedDate
+    @Column(name = "data_ultima_alteracao", nullable = false)
+    private LocalDateTime dataUltimaAlteracao;
+
+    protected Usuario(String nome, String email, String login, String senha, Endereco endereco) {
+        this.nome = nome;
+        this.email = email;
+        this.login = login;
+        this.senha = senha;
+        this.endereco = endereco;
+    }
+
+    /**
+     * Tipo do usuario, resolvido por polimorfismo.
+     *
+     * O valor nao e lido da coluna discriminadora: cada subclasse declara o
+     * proprio tipo. Adicionar um terceiro tipo de usuario e criar uma classe
+     * nova que implementa este metodo, sem alterar nada do que ja existe -
+     * o Principio Aberto/Fechado aplicado ao dominio.
+     */
+    public abstract TipoUsuario getTipo();
+
+    /**
+     * Igualdade baseada exclusivamente no identificador.
+     *
+     * Comparar todos os campos quebraria com entidades gerenciadas pelo
+     * Hibernate, que podem ser proxies com atributos ainda nao carregados.
+     */
+    @Override
+    public boolean equals(Object objeto) {
+        if (this == objeto) {
+            return true;
+        }
+        if (!(objeto instanceof Usuario outro)) {
+            return false;
+        }
+        return this.id != null && this.id.equals(outro.getId());
+    }
+
+    /**
+     * Valor constante de proposito.
+     *
+     * Uma entidade recem-criada ainda nao tem id; se o hashCode dependesse
+     * dele, mudaria apos a persistencia e o objeto se perderia dentro de
+     * colecoes baseadas em hash.
+     */
+    @Override
+    public int hashCode() {
+        return Usuario.class.hashCode();
+    }
+}
